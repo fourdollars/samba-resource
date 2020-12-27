@@ -1,0 +1,58 @@
+#!/bin/bash
+
+set -euo pipefail
+
+exec 3>&1
+exec 1>&2
+jq -M -S . < /dev/stdin > /tmp/input.json
+
+servicename=$(jq -r .source.servicename < /tmp/input.json)
+if [ "$(jq -r '.source | has("username")' < /tmp/input.json)" = 'true' ]; then
+    username=$(jq -r .source.username < /tmp/input.json)
+else
+    username=''
+fi
+if [ "$(jq -r '.source | has("password")' < /tmp/input.json)" = 'true' ]; then
+    password=$(jq -r .source.password < /tmp/input.json)
+else
+    password=''
+fi
+if [ "$(jq -r '.source | has("path")' < /tmp/input.json)" = 'true' ]; then
+    path=$(jq -r .source.path < /tmp/input.json)
+else
+    path=''
+fi
+args=()
+if [ -z "$password" ]; then
+    args+=('-N')
+else
+    args+=("$password")
+fi
+if [ -n "$username" ]; then
+    args+=("-U" "$username")
+fi
+
+lines=()
+while read -r line; do
+    if [ -n "$line" ]; then
+        lines+=("$line")
+    fi
+done < <(smbclient "$servicename" "${args[@]}" -c "ls $path/*" | sort)
+
+sha256=$(echo "${lines[@]:3}" | sha256sum | awk '{print $1}')
+
+join_by()
+{
+    local IFS="$1"
+    shift
+    local list
+    list=()
+    for i in "$@"; do
+        list+=('"'"$i"'"')
+    done
+    echo "${list[*]}"
+}
+
+json='[{"sha256":"'"$sha256"'","servicename":"'"$servicename"'","path":"'"$path"'"}]'
+
+jq -n "$json" >&3

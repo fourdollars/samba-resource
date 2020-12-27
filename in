@@ -1,0 +1,80 @@
+#!/bin/bash
+
+set -euo pipefail
+
+exec 3>&1
+exec 1>&2
+jq -M -S . < /dev/stdin > /tmp/input.json
+
+servicename=$(jq -r .source.servicename < /tmp/input.json)
+skip=$(jq -r .params.skip < /tmp/input.json)
+prev_sha256=$(jq -r .version.sha256 < /tmp/input.json)
+prev_path=$(jq -r .version.path < /tmp/input.json)
+if [ "$(jq -r '.source | has("username")' < /tmp/input.json)" = 'true' ]; then
+    username=$(jq -r .source.username < /tmp/input.json)
+else
+    username=''
+fi
+if [ "$(jq -r '.source | has("password")' < /tmp/input.json)" = 'true' ]; then
+    password=$(jq -r .source.password < /tmp/input.json)
+else
+    password=''
+fi
+if [ "$(jq -r '.source | has("path")' < /tmp/input.json)" = 'true' ]; then
+    path=$(jq -r .source.path < /tmp/input.json)
+else
+    path=''
+fi
+if [ "$(jq -r '.params | has("path")' < /tmp/input.json)" = 'true' ]; then
+    path+=/$(jq -r .params.path < /tmp/input.json)
+else
+    path="$prev_path"
+fi
+args=()
+if [ -z "$password" ]; then
+    args+=('-N')
+else
+    args+=("$password")
+fi
+if [ -n "$username" ]; then
+    args+=("-U" "$username")
+fi
+
+if [ "$skip" = 'true' ]; then
+    json='{"version":{"sha256":"'"$prev_sha256"'","servicename":"'"$servicename"'","path":"'"$prev_path"'"}}'
+else
+    lines=()
+    files=()
+    while read -r line; do
+        if [ -n "$line" ]; then
+            if [ "${#files[@]}" -gt 2 ]; then
+                echo "$line"
+            fi
+            lines+=("$line")
+            files+=("$(echo "$line" | awk '{print $1}')")
+        fi
+    done < <(smbclient "$servicename" "${args[@]}" -c "ls $path/*" | sort)
+    sha256=$(echo "${lines[@]:3}" | sha256sum | awk '{print $1}')
+    read -r all _ _ _ block free _ _ < <(echo "${lines[0]}")
+    all=$(("$all" * ${block/./} / 1024 / 1024 / 1024))
+    free=$(("$free" * ${block/./} / 1024 / 1024 / 1024))
+    if [ "${#files[@]}" -gt 3 ]; then
+        smbclient "$servicename" "${args[@]}" -D "$path" -Tc /tmp/backup.tar "*"
+        cd /tmp
+        tar xf backup.tar
+        mv "$path"/* "$1"
+        size=$(du -h /tmp/backup.tar | awk '{print $1}')
+        IFS=$'\n'
+        json='{"version":{"sha256":"'"$sha256"'","servicename":"'"$servicename"'","path":"'"$path"'"},"metadata":[{"name":"total","value":"'"$all"' MiB"},{"name":"free","value":"'"$free"' MiB"},{"name":"files","value":"'"${files[*]:3}"'"}'
+    else
+        size=
+        json='{"version":{"sha256":"'"$sha256"'","servicename":"'"$servicename"'","path":"'"$path"'"},"metadata":[{"name":"total","value":"'"$all"' MiB"},{"name":"free","value":"'"$free"' MiB"}'
+    fi
+    if [ -n "$size" ]; then
+        json+=',{"name":"size","value":"'"$size"'"}]}'
+    else
+        json+=']}'
+    fi
+fi
+
+jq -n "$json" >&3
