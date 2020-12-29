@@ -12,6 +12,17 @@ resource_types:
 - name: resource-samba
   type: registry-image
   source:
+    repository: fourdollars/samba-resource
+    tag: latest
+```
+
+or
+
+```yaml
+resource_types:
+- name: resource-samba
+  type: registry-image
+  source:
     repository: ghcr.io/fourdollars/samba-resource
     tag: latest
 ```
