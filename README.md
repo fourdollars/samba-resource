@@ -12,7 +12,7 @@ resource_types:
 - name: resource-samba
   type: registry-image
   source:
-    repository: fourdollars/samba-resource
+    repository: ghcr.io/fourdollars/samba-resource
     tag: latest
 ```
 
