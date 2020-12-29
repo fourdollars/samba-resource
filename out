@@ -53,14 +53,14 @@ size=$(du -h /tmp/backup.tar | awk '{print $1}')
 smbclient "$servicename" "${args[@]}" -D "$path" -Tx /tmp/backup.tar
 
 lines=()
-files=()
+noop=()
 while read -r line; do
     if [ -n "$line" ]; then
-        if [ "${#files[@]}" -gt 2 ]; then
+        if [ "${#noop[@]}" -gt 2 ]; then
             echo "$line"
         fi
         lines+=("$line")
-        files+=("$(echo "$line" | awk '{print $1}')")
+        noop+=("$(echo "$line" | awk '{print $1}')")
     fi
 done < <(smbclient "$servicename" "${args[@]}" -c "ls $path/*" | sort)
 
@@ -71,7 +71,7 @@ all=$(("$all" * ${block/./} / 1024 / 1024 / 1024))
 free=$(("$free" * ${block/./} / 1024 / 1024 / 1024))
 
 IFS=$'\n'
-json='{"version":{"sha256":"'"$sha256"'","servicename":"'"$servicename"'","path":"'"$path"'"},"metadata":[{"name":"total","value":"'"$all"' MiB"},{"name":"free","value":"'"$free"' MiB"},{"name":"files","value":"'"${files[*]:3}"'"}'
+json='{"version":{"sha256":"'"$sha256"'","servicename":"'"$servicename"'","path":"'"$path"'"},"metadata":[{"name":"total","value":"'"$all"' MiB"},{"name":"free","value":"'"$free"' MiB"},{"name":"files","value":"'"${files[*]}"'"}'
 if [ -n "$size" ]; then
     json+=',{"name":"size","value":"'"$size"'"}]}'
 else
