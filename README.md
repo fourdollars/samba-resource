@@ -49,11 +49,13 @@ resources:
 ### get step
 
 * path: optional
+* skip: optional, set true if you just want to list files and folders.
 
 ```yaml
 - get: storage
   params:
     path: SecondaryFolder
+    skip: false
 ```
 ```shell
 # It acts like the following commands.

@@ -40,41 +40,30 @@ if [ -n "$username" ]; then
     args+=("-U" "$username")
 fi
 
-if [ "$skip" = 'true' ]; then
-    json='{"version":{"sha256":"'"$prev_sha256"'","servicename":"'"$servicename"'","path":"'"$prev_path"'"}}'
-else
-    lines=()
-    files=()
-    while read -r line; do
-        if [ -n "$line" ]; then
-            if [ "${#files[@]}" -gt 2 ]; then
-                echo "$line"
-            fi
-            lines+=("$line")
-            files+=("$(echo "$line" | awk '{print $1}')")
+lines=()
+files=()
+while read -r line; do
+    if [ -n "$line" ]; then
+        if [ "${#files[@]}" -gt 2 ]; then
+            echo "$line"
         fi
-    done < <(smbclient "$servicename" "${args[@]}" -c "ls $path/*" | sort)
-    sha256=$(echo "${lines[@]:3}" | sha256sum | awk '{print $1}')
-    read -r all _ _ _ block free _ _ < <(echo "${lines[0]}")
-    all=$(("$all" * ${block/./} / 1024 / 1024 / 1024))
-    free=$(("$free" * ${block/./} / 1024 / 1024 / 1024))
-    if [ "${#files[@]}" -gt 3 ]; then
-        smbclient "$servicename" "${args[@]}" -D "$path" -Tc /tmp/backup.tar "*"
-        cd /tmp
-        tar xf backup.tar
-        mv "$path"/* "$1"
-        size=$(du -h /tmp/backup.tar | awk '{print $1}')
-        IFS=$'\n'
-        json='{"version":{"sha256":"'"$sha256"'","servicename":"'"$servicename"'","path":"'"$path"'"},"metadata":[{"name":"total","value":"'"$all"' MiB"},{"name":"free","value":"'"$free"' MiB"},{"name":"files","value":"'"${files[*]:3}"'"}'
-    else
-        size=
-        json='{"version":{"sha256":"'"$sha256"'","servicename":"'"$servicename"'","path":"'"$path"'"},"metadata":[{"name":"total","value":"'"$all"' MiB"},{"name":"free","value":"'"$free"' MiB"}'
+        lines+=("$line")
+        files+=("$(echo "$line" | awk '{print $1}')")
     fi
-    if [ -n "$size" ]; then
-        json+=',{"name":"size","value":"'"$size"'"}]}'
-    else
-        json+=']}'
-    fi
+done < <(smbclient "$servicename" "${args[@]}" -c "ls $path/*" | sort)
+sha256=$(echo "${lines[@]:3}" | sha256sum | awk '{print $1}')
+read -r all _ _ _ block free _ _ < <(echo "${lines[0]}")
+all=$(("$all" * ${block/./} / 1024 / 1024 / 1024))
+free=$(("$free" * ${block/./} / 1024 / 1024 / 1024))
+size=
+if [ "${#files[@]}" -gt 3 ] && [ "$skip" != "true" ]; then
+    smbclient "$servicename" "${args[@]}" -D "$path" -Tc /tmp/backup.tar "*"
+    cd /tmp
+    tar xf backup.tar
+    mv "$path"/* "$1"
+    size=$(du -h /tmp/backup.tar | awk '{print $1}')
 fi
+IFS=$'\n'
+json='{"version":{"sha256":"'"$sha256"'","servicename":"'"$servicename"'","path":"'"$path"'"},"metadata":[{"name":"total","value":"'"$all"' MiB"},{"name":"free","value":"'"$free"' MiB"},{"name":"files","value":"'"${files[*]:3}"'"},{"name":"size","value":"'"$size"'"}]}'
 
 jq -n "$json" >&3
