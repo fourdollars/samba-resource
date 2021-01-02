@@ -1,4 +1,4 @@
-# samba-resource
+# samba-resource [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Docker Pulls](https://img.shields.io/docker/pulls/fourdollars/samba-resource.svg)](https://hub.docker.com/r/fourdollars/samba-resource/) ![Docker](https://github.com/fourdollars/samba-resource/workflows/Docker/badge.svg)
 [concourse-ci](https://concourse-ci.org/)'s samba-resource
 
 * Inspired by [airtonix/concourse-resource-samba](https://github.com/airtonix/concourse-resource-samba) and [JeffDeCola/resource-template](https://github.com/JeffDeCola/resource-template)
