@@ -8,7 +8,6 @@ jq -M -S . < /dev/stdin > /tmp/input.json
 
 servicename=$(jq -r .source.servicename < /tmp/input.json)
 skip=$(jq -r .params.skip < /tmp/input.json)
-prev_sha256=$(jq -r .version.sha256 < /tmp/input.json)
 prev_path=$(jq -r .version.path < /tmp/input.json)
 if [ "$(jq -r '.source | has("username")' < /tmp/input.json)" = 'true' ]; then
     username=$(jq -r .source.username < /tmp/input.json)
@@ -29,6 +28,11 @@ if [ "$(jq -r '.params | has("path")' < /tmp/input.json)" = 'true' ]; then
     path+=/$(jq -r .params.path < /tmp/input.json)
 else
     path="$prev_path"
+fi
+if [ "$(jq -r '.params | has("files")' < /tmp/input.json)" = 'true' ]; then
+    mapfile -t files_to_get < <(jq -r '.params.files|.[]' < /tmp/input.json | sort)
+else
+    files_to_get=()
 fi
 args=()
 if [ -z "$password" ]; then
@@ -57,7 +61,11 @@ all=$(("$all" * ${block/./} / 1024 / 1024 / 1024))
 free=$(("$free" * ${block/./} / 1024 / 1024 / 1024))
 size=
 if [ "${#files[@]}" -gt 3 ] && [ "$skip" != "true" ]; then
-    smbclient "$servicename" "${args[@]}" -D "$path" -Tc /tmp/backup.tar "*"
+    if [ "${#files_to_get[@]}" -gt 0 ]; then
+        smbclient "$servicename" "${args[@]}" -D "$path" -Tc /tmp/backup.tar "${files_to_get[@]}"
+    else
+        smbclient "$servicename" "${args[@]}" -D "$path" -Tc /tmp/backup.tar "*"
+    fi
     cd /tmp
     tar xf backup.tar
     mv "$path"/* "$1"

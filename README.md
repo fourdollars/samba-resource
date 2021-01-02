@@ -49,17 +49,21 @@ resources:
 ### get step
 
 * path: optional
+* files: optional
 * skip: optional, set true if you just want to list files and folders.
 
 ```yaml
 - get: storage
   params:
     path: SecondaryFolder
+    files:
+      - file1.txt
+      - file2.txt
     skip: false
 ```
 ```shell
 # It acts like the following commands.
-$ smbclient //domain.name.or.ip/share_point -U YourUserName YourPassWord -D "PrimaryFolder/SecondaryFolder" -Tc /tmp/backup.tar "*"
+$ smbclient //domain.name.or.ip/share_point -U YourUserName YourPassWord -D "PrimaryFolder/SecondaryFolder" -Tc /tmp/backup.tar file1.txt file2.txt
 $ cd /tmp
 $ tar xf /tmp/backup.tar
 $ mv PrimaryFolder/SecondaryFolder/* /tmp/build/get
