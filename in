@@ -62,6 +62,16 @@ free=$(("$free" * ${block/./} / 1024 / 1024 / 1024))
 size=
 if [ "${#files[@]}" -gt 3 ] && [ "$skip" != "true" ]; then
     if [ "${#files_to_get[@]}" -gt 0 ]; then
+        not_exist=
+        for name in "${files_to_get[@]}"; do
+            if ! [[ "${files[*]}" =~ $name ]]; then
+                echo "\`$name' doesn't exist on $servicename/$path."
+                not_exist=1
+            fi
+        done
+        if [ -n "$not_exist" ]; then
+            exit 1
+        fi
         smbclient "$servicename" "${args[@]}" -D "$path" -Tc /tmp/backup.tar "${files_to_get[@]}" | head -n -2
     else
         smbclient "$servicename" "${args[@]}" -D "$path" -Tc /tmp/backup.tar "*" | head -n -2
