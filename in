@@ -62,9 +62,9 @@ free=$(("$free" * ${block/./} / 1024 / 1024 / 1024))
 size=
 if [ "${#files[@]}" -gt 3 ] && [ "$skip" != "true" ]; then
     if [ "${#files_to_get[@]}" -gt 0 ]; then
-        smbclient "$servicename" "${args[@]}" -D "$path" -Tc /tmp/backup.tar "${files_to_get[@]}"
+        smbclient "$servicename" "${args[@]}" -D "$path" -Tc /tmp/backup.tar "${files_to_get[@]}" | head -n -2
     else
-        smbclient "$servicename" "${args[@]}" -D "$path" -Tc /tmp/backup.tar "*"
+        smbclient "$servicename" "${args[@]}" -D "$path" -Tc /tmp/backup.tar "*" | head -n -2
     fi
     cd /tmp
     tar xf backup.tar

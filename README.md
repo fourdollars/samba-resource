@@ -34,6 +34,7 @@ resource_types:
 * username: optional
 * password: optional
 * path: optional
+* overwrite: optional, true by default and it can be overriden by params.overwrite of put step below.
 
 ```yaml
 resources:
@@ -44,6 +45,7 @@ resources:
     username: YourUserName
     password: YourPassWord
     path: PrimaryFolder
+    overwrite: false
 ```
 
 ### get step
@@ -73,6 +75,7 @@ $ mv PrimaryFolder/SecondaryFolder/* /tmp/build/get
 
 * from: **required**
 * files: optional
+* overwrite: optional
 * path: optional
 * skip: optional if you don't want the [implicit get step](https://concourse-ci.org/jobs.html#put-step) after the put step to download the same content again in order to save the execution time.
 
@@ -83,6 +86,7 @@ $ mv PrimaryFolder/SecondaryFolder/* /tmp/build/get
     files:
       - file1.txt
       - file2.txt
+    overwrite: false
     path: SecondaryDirectory
   get_params:
     skip: true
