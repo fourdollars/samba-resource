@@ -4,38 +4,38 @@ set -euo pipefail
 
 exec 3>&1
 exec 1>&2
-jq -M -S . < /dev/stdin > /tmp/input.json
+payload="$(cat <&0)"
 
-servicename=$(jq -r .source.servicename < /tmp/input.json)
-if [ "$(jq -r '.source | has("username")' < /tmp/input.json)" = 'true' ]; then
-    username=$(jq -r .source.username < /tmp/input.json)
+servicename=$(jq -r .source.servicename <<< "$payload")
+if [ "$(jq -r '.source | has("username")' <<< "$payload")" = 'true' ]; then
+    username=$(jq -r .source.username <<< "$payload")
 else
     username=''
 fi
-if [ "$(jq -r '.source | has("password")' < /tmp/input.json)" = 'true' ]; then
-    password=$(jq -r .source.password < /tmp/input.json)
+if [ "$(jq -r '.source | has("password")' <<< "$payload")" = 'true' ]; then
+    password=$(jq -r .source.password <<< "$payload")
 else
     password=''
 fi
-if [ "$(jq -r '.source | has("path")' < /tmp/input.json)" = 'true' ]; then
-    path=$(jq -r .source.path < /tmp/input.json)
+if [ "$(jq -r '.source | has("path")' <<< "$payload")" = 'true' ]; then
+    path=$(jq -r .source.path <<< "$payload")
 else
     path=''
 fi
-overwrite=$(jq -r .source.overwrite < /tmp/input.json) # It will be 'null' if it is not provided.
-if [ "$(jq -r '.params | has("path")' < /tmp/input.json)" = 'true' ]; then
-    path+=/$(jq -r .params.path < /tmp/input.json)
+overwrite=$(jq -r .source.overwrite <<< "$payload") # It will be 'null' if it is not provided.
+if [ "$(jq -r '.params | has("path")' <<< "$payload")" = 'true' ]; then
+    path+=/$(jq -r .params.path <<< "$payload")
 fi
-if [ "$(jq -r '.params | has("from")' < /tmp/input.json)" = 'true' ]; then
-    from=/$(jq -r .params.from < /tmp/input.json)
+if [ "$(jq -r '.params | has("from")' <<< "$payload")" = 'true' ]; then
+    from=/$(jq -r .params.from <<< "$payload")
 fi
-if [ "$(jq -r '.params | has("files")' < /tmp/input.json)" = 'true' ]; then
-    mapfile -t files < <(jq -r '.params.files|.[]' < /tmp/input.json | sort)
+if [ "$(jq -r '.params | has("files")' <<< "$payload")" = 'true' ]; then
+    mapfile -t files < <(jq -r '.params.files|.[]' <<< "$payload" | sort)
 else
     files=()
 fi
-if [ "$(jq -r '.params | has("overwrite")' < /tmp/input.json)" = 'true' ]; then
-    overwrite=$(jq -r .params.overwrite < /tmp/input.json)
+if [ "$(jq -r '.params | has("overwrite")' <<< "$payload")" = 'true' ]; then
+    overwrite=$(jq -r .params.overwrite <<< "$payload")
 fi
 args=()
 if [ -z "$password" ]; then
